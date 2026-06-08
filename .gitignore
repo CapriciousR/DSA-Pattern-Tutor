@@ -1,0 +1,21 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+
+# Local Vector Databases & Storage
+.chroma/
+chroma_db/
+.docstore/
+
+# Environment Variables & Secrets
+.env
+secrets.toml
+
+# Streamlit operational files
+.streamlit/config.toml
+
+# External Data / Cloned Repositories
+data/solutions/Python
