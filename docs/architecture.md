@@ -1,28 +1,26 @@
-graph TD
-    %% Styling
-    classDef user fill:#2d3436,stroke:#b2bec3,stroke-width:2px,color:#fff
-    classDef engine fill:#0984e3,stroke:#74b9ff,stroke-width:2px,color:#fff
-    classDef db fill:#00b894,stroke:#55efc4,stroke-width:2px,color:#fff
-    classDef logic fill:#6c5ce7,stroke:#a29bfe,stroke-width:2px,color:#fff
+flowchart TB
+    Q([👤 User Query])
 
-    Q["👤 User Query"]:::user --> Split["Parallel Search Strategy"]:::logic
+    subgraph 1. Parallel Search Layer
+        Q -->|Keyword Match| BM25[BM25 Retriever]
+        Q -->|Semantic Match| Chroma[Chroma Vector Store]
+    end
 
-    %% BM25 Pathway
-    Split -->|25% Weight| BM25["BM25 Keyword Engine"]:::engine
-    BM25 -.->|Exact Match| Store[("In-Memory Store<br/>(Parent AST Documents)")]:::db
+    subgraph 2. Parent-Document Resolution (PDR)
+        Chroma -->|Returns| ChildChunks[400-char Child Chunks]
+        ChildChunks -->|parent_id lookup| Store[(Pickled Document Store)]
+    end
 
-    %% Chroma Pathway
-    Split -->|75% Weight| Chroma["ChromaDB Vector Engine"]:::engine
-    Chroma -.->|Semantic Match| Vec[("Dense Vector DB<br/>(400-char Child Chunks)")]:::db
-    
-    %% Parent Document Retriever (PDR) mapping
-    Vec -->|parent_id lookup| Store
+    subgraph 3. Rank Fusion
+        BM25 -->|Returns| P1[2000-char Parent ASTs]
+        Store -->|Fetches| P2[2000-char Parent ASTs]
+        
+        P1 -->|25% Weight| Ensemble{Ensemble Retriever}
+        P2 -->|75% Weight| Ensemble
+    end
 
-    %% Retrieval Fusion
-    Store --> Fusion["Reciprocal Rank Fusion<br/>(Ensemble Retriever)"]:::logic
-    BM25 --> Fusion
-
-    %% LLM Generation
-    Fusion -->|Top 3 Full Scripts| Prompt["Prompt Formatting<br/>(Strict Socratic Template)"]:::logic
-    Prompt --> LLM["Llama 3.2 (3B)<br/>Local Inference"]:::engine
-    LLM --> Final["🎯 Socratic Hint & Complexity"]:::user
+    subgraph 4. Generation
+        Ensemble -->|Top 3 Context Blocks| Prompt[Strict Socratic Template]
+        Prompt --> LLM[Local Llama 3.2 3B]
+        LLM --> Final([🎯 Final Output])
+    end
