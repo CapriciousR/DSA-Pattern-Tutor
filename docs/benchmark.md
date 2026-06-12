@@ -69,3 +69,17 @@
   * Top-3 Accuracy: 45.5%
 * **Conclusion:** **Failed Experiment.** Hard metadata filtering caused "Intra-Category Collapse". By restricting the search space to a single folder, BM25 lost its term-frequency sorting power (every file had the same keywords), and dense vectors struggled to differentiate highly homogenous code files. 
 * **ULTIMATE DECISION:** The architecture is officially rolled back to **Phase 3 (Global Hybrid Search)**. It balances global keyword rarity with semantic structural matching flawlessly and remains the fastest, most resilient engine for this specific codebase.
+
+
+| Phase | Architecture Strategy | Top-1 Acc | Top-3 Acc | Key Observation / Conclusion |
+| :--- | :--- | :--- | :--- | :--- |
+| **1: Baseline** | Recursive Char Splitting + Chroma (`all-MiniLM`) | 31.8% | 50.0% | **Failed:** Small chunks shred code logic; LLM hallucinates. |
+| **2: AST** | AST Chunking + Chroma (`all-MiniLM`) | 22.7% | 50.0% | **Failed:** Fixes logic splits, but creates "Vector Dilution" from boilerplate. |
+| **3A: 100% Chroma** | AST Chunking + 100% Chroma Search | 36.4% | 59.1% | **Testing:** Good Top-3 safety net, but vector dilution caps Top-1. |
+| **3B: 50/50 Hybrid** | Ensemble: 50% BM25 / 50% Chroma | 40.9% | 45.5% | **Testing:** BM25 acts as a keyword sniper, but Chroma noise clashes. |
+| **3C: 25/75 Hybrid** | Ensemble: 25% BM25 / 75% Chroma | 45.5% | 54.5% | **Testing:** Found the optimal mathematical balance between semantic net and keyword precision. |
+| **4A: Cross-Enc 3** | Hybrid + MS-MARCO Reranker (Top 3) | 27.3% | 59.1% | **Failed:** Reranker fundamentally misunderstood Python AST syntax. |
+| **4B: Cross-Enc 5** | Hybrid + MS-MARCO Reranker (Top 5) | 27.3% | 68.2% | **Failed:** High Top-3, but Top-1 tanked and latency spiked massively. |
+| **5: HyDE** | Llama 3.2 Hypothetical Code + Hybrid | 40.9% | 54.5% | **Failed:** Code style mismatch and unacceptable LLM compute overhead. |
+| **6: Metadata** | O(1) LLM Routing + Hard Filter + Hybrid | 27.3% | 45.5% | **Failed:** Intra-Category Collapse. Filter blinded the BM25 term-frequency. |
+| **Final: Prod** | **Parent-Doc Retriever (PDR) + 25/75 Hybrid** | **45.5%** | **63.6%** | **🏆 ULTIMATE WINNER:** PDR perfectly solves the chunking dilemma. Highest Top-3 safety net without sacrificing speed (0.04s). |

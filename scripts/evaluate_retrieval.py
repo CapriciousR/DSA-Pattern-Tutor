@@ -5,7 +5,7 @@ import time
 # Add the root directory to the python path so it can find 'src'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.retriever import HybridRouterRetriever
+from src.retriever import build_pdr_hybrid_retriever
 
 # Comprehensive 22-Case DSA Test Suite
 TEST_CASES = [
@@ -35,7 +35,7 @@ TEST_CASES = [
 
 def run_evaluation():
     print("\nInitializing Production Metadata Router Engine...\n")
-    retriever = HybridRouterRetriever()
+    retriever = build_pdr_hybrid_retriever()
     
     top_1_hits = 0
     top_3_hits = 0
@@ -47,10 +47,7 @@ def run_evaluation():
         expected_list = test["expected_sources"]
         
         start_time = time.time()
-        
-        # 1. We manually call route_query just to print it for the benchmark logs
-        routed_category = retriever.route_query(query)
-        
+            
         # 2. Invoke the full pipeline (Routes + Retrieves)
         retrieved_docs = retriever.invoke(query, k=3)
         
@@ -64,7 +61,6 @@ def run_evaluation():
         ]
         
         print(f"\nTest {test['id']}: {query[:60]}...")
-        print(f"  🏷️  Routed to: {routed_category} (in {elapsed:.2f}s)")
         print(f"  🎯 Expected: {expected_list}")
         print(f"  📦 Retrieved: {retrieved_sources}")
         
